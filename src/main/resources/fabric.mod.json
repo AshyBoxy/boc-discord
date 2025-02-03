@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "boc-discord",
 	"version": "${version}",
-	"name": "Boc Discord",
+	"name": "BOC Discord",
 	"description": "Simple mod providing a minecraft to discord chat link",
 	"authors": [
 		"AshyBoxy"

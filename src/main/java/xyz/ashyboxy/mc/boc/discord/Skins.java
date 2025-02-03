@@ -2,6 +2,7 @@ package xyz.ashyboxy.mc.boc.discord;
 
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.tree.CommandNode;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -31,10 +32,10 @@ import java.util.regex.Pattern;
 
 // i am proud of this horrible mess
 public class Skins {
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context, Commands.CommandSelection env) {
-        BocDiscord.LOGGER.info("registering skin commands");
+    public static void register(CommandNode<CommandSourceStack> root) {
+        BocDiscord.LOGGER.info("Registering BOC-Discord skin commands");
 
-        dispatcher.register(Commands.literal("skins").then(Commands.literal("test").executes((c) -> {
+        var skins = Commands.literal("skins").then(Commands.literal("test").executes((c) -> {
             CommandSourceStack source = c.getSource();
             MinecraftServer server = source.getServer();
             ServerLevel level = source.getLevel();
@@ -46,7 +47,9 @@ public class Skins {
 
             source.sendSystemMessage(Component.literal(headURI.toString()));
             return 0;
-        })));
+        })).build();
+        
+        root.addChild(skins);
     }
 
     @SuppressWarnings({ "ResultOfMethodCallIgnored", "unused" })

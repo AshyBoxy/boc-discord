@@ -8,13 +8,13 @@ import org.slf4j.LoggerFactory;
 
 public class BocDiscord implements ModInitializer {
 	public static final String MOD_ID = "boc-discord";
-    public static final Logger LOGGER = LoggerFactory.getLogger("Boc Discord");
+    public static final Logger LOGGER = LoggerFactory.getLogger("BOC Discord");
 
 	@Override
 	public void onInitialize() {
 		LOGGER.info("discord degeneracy time :3");
 		Config.load();
-		if(Config.debug) CommandRegistrationCallback.EVENT.register(Skins::register);
 		Discord.initialize();
+		CommandRegistrationCallback.EVENT.register(BDCommands::register);
 	}
 }

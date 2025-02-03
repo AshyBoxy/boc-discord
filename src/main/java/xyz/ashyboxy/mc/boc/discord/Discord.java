@@ -77,14 +77,14 @@ public class Discord {
             Component playerName = sender.getDisplayName();
             if (playerName == null) playerName = sender.getName();
             URI avatarURL = Skins.Renderer.getHeadURIFromPlayer(sender, sender.getServer(), Config.skinHats, 64);
-            sendWebhook(msg.getString(), playerName.getString(), avatarURL);
+            sendWebhook(serializeComponent(msg), playerName.getString(), avatarURL);
         });
         ServerMessageEvents.COMMAND_MESSAGE.register((message, source, params) -> {
             if (!source.isPlayer()) return;
             Component msg = message.decoratedContent();
             Component playerName = source.getDisplayName();
             URI avatarURL = Skins.Renderer.getHeadURIFromPlayer(source.getPlayer(), source.getServer(), Config.skinHats, 64);
-            sendWebhook(msg.getString(), playerName.getString(), avatarURL);
+            sendWebhook(serializeComponent(msg), playerName.getString(), avatarURL);
         });
 
         ServerLifecycleEvents.SERVER_STARTED.register((server) -> {
@@ -123,7 +123,7 @@ public class Discord {
 
     public static void triggerAdvancement(AdvancementHolder advancement, DisplayInfo advancementDisplayInfo,
                                           ServerPlayer player) {
-        sendMessage(DiscordSerializer.INSTANCE.serialize(advancementDisplayInfo.getType().createAnnouncement(advancement, player)) + ": *" + DiscordSerializer.INSTANCE.serialize(advancementDisplayInfo.getDescription().copy()) + "*");
+        sendMessage(serializeComponent(advancementDisplayInfo.getType().createAnnouncement(advancement, player)) + ": *" + DiscordSerializer.INSTANCE.serialize(advancementDisplayInfo.getDescription().copy()) + "*");
     }
 
     public static class ReadyListener implements EventListener {
@@ -159,5 +159,9 @@ public class Discord {
             if (!message.getAttachments().isEmpty() || !message.getEmbeds().isEmpty()) msgComponent.append(Component.literal((!message.getContentDisplay().isEmpty() ? " " : "") + "(+" + (message.getAttachments().size() + message.getEmbeds().size()) + " attachments)").withStyle(ChatFormatting.ITALIC));
             discordMessages.add(msgComponent);
         }
+    }
+    
+    public static String serializeComponent(Component component) {
+        return DiscordSerializer.INSTANCE.serialize(component.copy());
     }
 }
