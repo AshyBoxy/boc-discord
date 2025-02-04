@@ -1,11 +1,11 @@
 package xyz.ashyboxy.mc.boc.discord;
 
+import com.nimbusds.openid.connect.sdk.assurance.evidences.ElectronicSignatureEvidence;
 import me.hypherionmc.mcdiscordformatter.discord.DiscordSerializer;
 import me.hypherionmc.mcdiscordformatter.minecraft.MinecraftSerializer;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -13,7 +13,6 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
-import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -22,17 +21,13 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.DisplayInfo;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.*;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class Discord {
     public static JDA jda;
@@ -153,15 +148,101 @@ public class Discord {
 
             // this is in a jda thread, so we need to get this to the server thread somehow
             // at least i think we do?
-            MutableComponent msgComponent =
-                    Component.empty().append(Component.literal("[Discord] ").withStyle(ChatFormatting.BLUE,
-                            ChatFormatting.BOLD)).append(Component.literal("<" + username + "> ").withStyle(ChatFormatting.GOLD)).append(MinecraftSerializer.INSTANCE.serialize(message.getContentDisplay()));
-            if (!message.getAttachments().isEmpty() || !message.getEmbeds().isEmpty()) msgComponent.append(Component.literal((!message.getContentDisplay().isEmpty() ? " " : "") + "(+" + (message.getAttachments().size() + message.getEmbeds().size()) + " attachments)").withStyle(ChatFormatting.ITALIC));
-            discordMessages.add(msgComponent);
+            discordMessages.add(decorateDiscordMessage(message));
         }
+    }
+    
+    public static Component decorateDiscordMessage(Message message) {
+        // TODO: handle member being null
+        Member sender = message.getMember();
+        
+        MutableComponent msgComponent = Component.empty();
+        MutableComponent nameComponent;
+        MutableComponent nameHoverComponent = Component.empty();
+        
+        {
+            String nickname = sender.getNickname();
+            String displayName = sender.getUser().getGlobalName();
+            String username = sender.getUser().getName();
+            String name = nickname != null ? nickname : displayName != null ? displayName : username;
+
+            if (nickname != null && (!nickname.equals(displayName) || !nickname.equals(username))) {
+                if (displayName != null) {
+                    nameHoverComponent.append(Component.literal(displayName));
+                    nameHoverComponent.append(Component.literal(" (@" + username + ")"));
+                } else nameHoverComponent.append(Component.literal("@" + username));
+            }
+
+            nameComponent = Component.literal(name);
+        }
+        
+        nameComponent.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, nameHoverComponent)));
+        
+
+        msgComponent.append(Component.literal("[Discord] ").withStyle(ChatFormatting.BLUE, ChatFormatting.BOLD));
+        msgComponent.append(Component.literal("<").append(nameComponent).append("> ").withStyle(ChatFormatting.GOLD));
+        msgComponent.append(deserializeComponent(message.getContentDisplay()));
+
+        if (!message.getAttachments().isEmpty() || !message.getEmbeds().isEmpty()) msgComponent.append(
+                Component.literal((!message.getContentDisplay().isBlank() ? " " : "")
+                                + "(+" + (message.getAttachments().size() + message.getEmbeds().size()) + " " + "attachments)")
+                        .withStyle(ChatFormatting.ITALIC));
+
+        if (message.getType() == MessageType.INLINE_REPLY) {
+            MutableComponent replyComponent = Component.literal("reply").withStyle(ChatFormatting.ITALIC);
+            MessageReference reference = message.getMessageReference();
+            if (reference != null && reference.getMessage() instanceof Message referenceMsg) {
+                // this logic is probably better than the logic used to fill in the sender
+                // TODO: split this into a separate method (probably a separate class)
+                
+                String effectiveName;
+                String userEffectiveName;
+                String username;
+                
+                if (referenceMsg.getMember() instanceof Member referenceMember) {
+                    effectiveName = referenceMember.getEffectiveName();
+                    userEffectiveName = referenceMember.getUser().getEffectiveName();
+                    username = referenceMember.getUser().getEffectiveName();
+                } else {
+                    User user = referenceMsg.getAuthor();
+                    try {
+                        Member referenceMember = Objects.requireNonNull(reference.getGuild()).retrieveMember(user).complete();
+                        effectiveName = referenceMember.getEffectiveName();
+                    } catch (Exception e) {
+                        effectiveName = user.getEffectiveName();
+                    }
+                    userEffectiveName = user.getEffectiveName();
+                    username = user.getName();
+                }
+
+                MutableComponent hover = Component.literal(effectiveName).withStyle(ChatFormatting.GOLD);
+                MutableComponent hoverSecondary = Component.empty().withStyle(ChatFormatting.GRAY);
+                
+                // TODO: should probably use a string builder for things like this
+                if (!effectiveName.equals(userEffectiveName)) {
+                    hoverSecondary.append(Component.literal(" (" + userEffectiveName));
+                    if (!userEffectiveName.equals(username)) hoverSecondary.append(Component.literal(" (@" + username + ")"));
+                    hoverSecondary.append(Component.literal(")"));
+                } else if (!userEffectiveName.equals(username)) hoverSecondary.append(Component.literal(" @" + username));
+                
+                if(!hoverSecondary.getString().isBlank()) hover.append(hoverSecondary);
+                hover.append("\n");
+                hover.append(deserializeComponent(referenceMsg.getContentDisplay()));
+                
+                replyComponent.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hover)));
+            }
+            msgComponent.append(Component.literal(" (").append(replyComponent).append(")"));
+        }
+
+
+        return msgComponent;
     }
     
     public static String serializeComponent(Component component) {
         return DiscordSerializer.INSTANCE.serialize(component.copy());
+    }
+    
+    public static Component deserializeComponent(String serialized) {
+        return MinecraftSerializer.INSTANCE.serialize(serialized);
     }
 }

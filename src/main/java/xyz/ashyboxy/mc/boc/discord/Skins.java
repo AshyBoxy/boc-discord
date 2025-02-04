@@ -1,12 +1,12 @@
 package xyz.ashyboxy.mc.boc.discord;
 
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.tree.CommandNode;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -28,28 +28,36 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 // i am proud of this horrible mess
 public class Skins {
     public static void register(CommandNode<CommandSourceStack> root) {
         BocDiscord.LOGGER.info("Registering BOC-Discord skin commands");
-
-        var skins = Commands.literal("skins").then(Commands.literal("test").executes((c) -> {
-            CommandSourceStack source = c.getSource();
+        
+        Command<CommandSourceStack> urlExecute = (context) -> {
+            CommandSourceStack source = context.getSource();
             MinecraftServer server = source.getServer();
-            ServerLevel level = source.getLevel();
             ServerPlayer player = source.getPlayer();
-            RegistryAccess registryAccess = source.registryAccess();
+            if (player == null) try {
+                player = EntityArgument.getPlayer(context, "player");
+            } catch (Exception ignored) {}
             if (player == null) return -1;
             URI headURI = Renderer.getHeadURIFromPlayer(player, server);
             if (headURI == null) return -1;
 
             source.sendSystemMessage(Component.literal(headURI.toString()));
             return 0;
-        })).build();
+        };
+
+        var skins = Commands.literal("skins").build();
+        var url = Commands.literal("url").executes(urlExecute).build();
+        var urlPlayer = Commands.argument("player", EntityArgument.player()).executes(urlExecute).build();
         
         root.addChild(skins);
+        skins.addChild(url);
+        url.addChild(urlPlayer);
     }
 
     @SuppressWarnings({ "ResultOfMethodCallIgnored", "unused" })

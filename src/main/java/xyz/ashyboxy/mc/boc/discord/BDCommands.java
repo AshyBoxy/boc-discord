@@ -5,6 +5,7 @@ import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import com.mojang.authlib.yggdrasil.ProfileResult;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandBuildContext;
@@ -34,7 +35,7 @@ public class BDCommands {
                 .build();
         boc.addChild(discord);
 
-        if (Config.debug) Skins.register(discord);
+        Skins.register(discord);
 
 
         var send = Commands.literal("send").build();
@@ -64,6 +65,15 @@ public class BDCommands {
 
         discord.addChild(server);
         server.addChild(serverMessage);
+        
+        
+        var sendDiscord = Commands.literal("sendDiscord").build();
+        var sendDiscordMessage = Commands.argument("message", StringArgumentType.greedyString())
+                .executes(BDCommands::sendDiscord)
+                .build();
+
+        discord.addChild(sendDiscord);
+        sendDiscord.addChild(sendDiscordMessage);
     }
 
     private static int send(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
@@ -114,6 +124,12 @@ public class BDCommands {
         Component decorated = ChatType.bind(ChatType.SAY_COMMAND, context.getSource().registryAccess(), Component.literal("Server")).decorate(message);
         context.getSource().getServer().getPlayerList().broadcastSystemMessage(decorated, false);
         Discord.sendMessage(Discord.serializeComponent(message));
+        return 0;
+    }
+    
+    private static int sendDiscord(CommandContext<CommandSourceStack> context) {
+        String message = StringArgumentType.getString(context, "message");
+        Discord.sendMessage(message);
         return 0;
     }
 }
