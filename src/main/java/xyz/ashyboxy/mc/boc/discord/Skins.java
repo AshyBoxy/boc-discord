@@ -39,10 +39,11 @@ public class Skins {
         Command<CommandSourceStack> urlExecute = (context) -> {
             CommandSourceStack source = context.getSource();
             MinecraftServer server = source.getServer();
-            ServerPlayer player = source.getPlayer();
-            if (player == null) try {
+            ServerPlayer player = null;
+            try {
                 player = EntityArgument.getPlayer(context, "player");
             } catch (Exception ignored) {}
+            if (player == null) player = source.getPlayer();
             if (player == null) return -1;
             URI headURI = Renderer.getHeadURIFromPlayer(player, server);
             if (headURI == null) return -1;
