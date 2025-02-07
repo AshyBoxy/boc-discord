@@ -3,6 +3,7 @@ package xyz.ashyboxy.mc.boc.discord;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,7 @@ public class BocDiscord implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("discord degeneracy time :3");
 		Config.load();
+		Skins.Renderer.setOutputDir(FabricLoader.getInstance().getConfigDir().resolve("boc/skins"));
 		Discord.initialize();
 		CommandRegistrationCallback.EVENT.register(BDCommands::register);
 	}

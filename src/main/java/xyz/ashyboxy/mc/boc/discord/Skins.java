@@ -77,7 +77,12 @@ public class Skins {
         private static final Pattern dotPngPattern = Pattern.compile("\\.png$");
 
         // this should point to the folder served at Config.skinsUrl
-        private static final Path outputDir = FabricLoader.getInstance().getConfigDir().resolve("boc/skins");
+        private static Path outputDir = null;
+        
+        public static void setOutputDir(Path newOutputDir) {
+            if (outputDir != null) throw new IllegalStateException("Output dir already set");
+            outputDir = newOutputDir;
+        }
 
         @Nullable
         public static URI getHeadURIFromPlayer(Player player, MinecraftServer server, boolean hat, int scale) {
@@ -140,7 +145,7 @@ public class Skins {
                 return null;
             }
             if (origImage.getWidth() != 64) return null;
-            BufferedImage image = new BufferedImage(origImage.getWidth() * scale, origImage.getHeight() * scale, BufferedImage.TYPE_INT_ARGB);
+            BufferedImage image = new BufferedImage(origImage.getWidth(), origImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
             image.getGraphics().drawImage(origImage, 0, 0, null);
             BufferedImage outputImage = new BufferedImage(8, 8, image.getType());
             BufferedImage faceImage = new BufferedImage(8, 8, image.getType());
@@ -152,6 +157,8 @@ public class Skins {
             for (int y = 0; y < 8; y++) {
                 int[] pixels = new int[8 * 4];
                 raster.getPixels(faceHorizontalOffset, faceVerticalOffset + y, 8, 1, pixels);
+                // fixes an issue when there are blank pixels in the face layer
+                for (int x = 0; x < 32; x++) if (pixels[x] == 0) pixels[+ x] = 0x000000FF;
                 faceRaster.setPixels(0, y, 8, 1, pixels);
             }
             for (int y = 0; y < 8; y++) {
@@ -160,7 +167,8 @@ public class Skins {
                 hatRaster.setPixels(0, y, 8, 1, pixels);
             }
 
-            AlphaComposite.getInstance(AlphaComposite.DST_ATOP).createContext(image.getColorModel(), image.getColorModel(), null).compose(faceRaster, hatRaster, outputRaster);
+            AlphaComposite.getInstance(AlphaComposite.DST_ATOP).createContext(image.getColorModel(), image.getColorModel(),
+                    null).compose(faceRaster, hatRaster, outputRaster);
 
             // outputImage has the face + hat, faceImage has only the face
             try {
