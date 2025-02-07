@@ -141,10 +141,6 @@ public class Discord {
             Message message = event.getMessage();
             if (!event.getChannel().getId().equals(channel.getId()) || message.getAuthor().getId().equals(webhook.getId()) || author.getId().equals(jda.getSelfUser().getId()))
                 return;
-            Member member = message.getMember();
-            String username = null;
-            if (member != null) username = member.getNickname();
-            if (username == null) username = message.getAuthor().getEffectiveName();
 
             // this is in a jda thread, so we need to get this to the server thread somehow
             // at least i think we do?
@@ -215,7 +211,7 @@ public class Discord {
                     username = user.getName();
                 }
 
-                MutableComponent hover = Component.literal(effectiveName).withStyle(ChatFormatting.GOLD);
+                MutableComponent hover = Component.empty().append(Component.literal(effectiveName).withStyle(ChatFormatting.GOLD));
                 MutableComponent hoverSecondary = Component.empty().withStyle(ChatFormatting.GRAY);
                 
                 // TODO: should probably use a string builder for things like this
