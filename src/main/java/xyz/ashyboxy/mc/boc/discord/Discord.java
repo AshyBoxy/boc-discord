@@ -1,6 +1,5 @@
 package xyz.ashyboxy.mc.boc.discord;
 
-import com.nimbusds.openid.connect.sdk.assurance.evidences.ElectronicSignatureEvidence;
 import me.hypherionmc.mcdiscordformatter.discord.DiscordSerializer;
 import me.hypherionmc.mcdiscordformatter.minecraft.MinecraftSerializer;
 import net.dv8tion.jda.api.JDA;
@@ -21,7 +20,10 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.DisplayInfo;
-import net.minecraft.network.chat.*;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -72,6 +74,14 @@ public class Discord {
             Component playerName = sender.getDisplayName();
             if (playerName == null) playerName = sender.getName();
             URI avatarURL = Skins.Renderer.getHeadURIFromPlayer(sender, sender.getServer(), Config.skinHats, 64);
+
+            if (msg.getString().startsWith("xaero-waypoint:")) {
+                String[] parts = msg.getString().split(":");
+                msg = Component.literal(
+                        String.format("Shared a waypoint called \"%s\" at %s %s %s!", parts[1], parts[3], parts[4], parts[5])
+                ).withStyle(ChatFormatting.ITALIC);
+            }
+
             sendWebhook(serializeComponent(msg), playerName.getString(), avatarURL);
         });
         ServerMessageEvents.COMMAND_MESSAGE.register((message, source, params) -> {
