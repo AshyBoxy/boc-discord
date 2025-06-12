@@ -159,17 +159,16 @@ public class Discord {
     }
     
     public static Component decorateDiscordMessage(Message message) {
-        // TODO: handle member being null
-        Member sender = message.getMember();
-        
         MutableComponent msgComponent = Component.empty();
         MutableComponent nameComponent;
         MutableComponent nameHoverComponent = Component.empty();
         
         {
-            String nickname = sender.getNickname();
-            String displayName = sender.getUser().getGlobalName();
-            String username = sender.getUser().getName();
+            Member member = message.getMember();
+            String nickname = member != null ? member.getNickname() : null;
+            User user = message.getAuthor();
+            String displayName = user.getGlobalName();
+            String username = user.getName();
             String name = nickname != null ? nickname : displayName != null ? displayName : username;
 
             if (nickname != null && (!nickname.equals(displayName) || !nickname.equals(username))) {
