@@ -73,7 +73,7 @@ public class Discord {
             Component msg = message.decoratedContent();
             Component playerName = sender.getDisplayName();
             if (playerName == null) playerName = sender.getName();
-            URI avatarURL = Skins.Renderer.getHeadURIFromPlayer(sender, sender.getServer(), Config.skinHats, 64);
+            URI avatarURL = Skins.Renderer.getHeadURIFromPlayer(sender, sender.level().getServer(), Config.skinHats, 64);
 
             if (msg.getString().startsWith("xaero-waypoint:")) {
                 String[] parts = msg.getString().split(":");
@@ -180,9 +180,8 @@ public class Discord {
 
             nameComponent = Component.literal(name);
         }
-        
-        nameComponent.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, nameHoverComponent)));
-        
+
+        nameComponent.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(nameHoverComponent)));
 
         msgComponent.append(Component.literal("[Discord] ").withStyle(ChatFormatting.BLUE, ChatFormatting.BOLD));
         msgComponent.append(Component.literal("<").append(nameComponent).append("> ").withStyle(ChatFormatting.GOLD));
@@ -234,7 +233,7 @@ public class Discord {
                 hover.append("\n");
                 hover.append(deserializeComponent(referenceMsg.getContentDisplay()));
                 
-                replyComponent.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hover)));
+                replyComponent.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(hover)));
             }
             msgComponent.append(Component.literal(" (").append(replyComponent).append(")"));
         }
